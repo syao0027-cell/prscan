@@ -1,43 +1,122 @@
+// ==========================
+// データ読込
+// ==========================
 let scans = JSON.parse(localStorage.getItem("scans")) || [];
 
-renderTable();
+let qr = null;
 
-const qr = new Html5Qrcode("reader");
+// 初期表示
+updateCount();
 
-qr.start(
-    { facingMode: "environment" },
-    {
-        fps: 10,
-        qrbox: 250
-    },
-    onScanSuccess
-);
 
+// ==========================
+// スキャナー起動
+// ==========================
+function openScanner(){
+
+    document.getElementById("homePage").classList.remove("active");
+    document.getElementById("scanPage").classList.add("active");
+
+    if(qr) return;
+
+    qr = new Html5Qrcode("reader");
+
+    qr.start(
+        { facingMode: "environment" },
+        {
+            fps: 10,
+            qrbox: 250
+        },
+        onScanSuccess
+    ).catch(err=>{
+        alert("カメラを起動できませんでした。\nカメラの許可を確認してください。");
+        console.error(err);
+    });
+}
+
+
+// ==========================
+// ホームへ戻る
+// ==========================
+function goHome(){
+
+    document.getElementById("scanPage").classList.remove("active");
+    document.getElementById("homePage").classList.add("active");
+
+    if(qr){
+
+        qr.stop()
+        .then(()=>{
+
+            qr.clear();
+
+            qr = null;
+
+        })
+        .catch(err=>{
+            console.log(err);
+        });
+
+    }
+
+    updateCount();
+}
+
+
+
+// ==========================
+// 一覧表示
+// ==========================
+function showList(){
+
+    document.getElementById("homePage").classList.remove("active");
+    document.getElementById("listPage").classList.add("active");
+
+    renderTable();
+}
+
+
+// ==========================
+// 一覧→ホーム
+// ==========================
+function backHomeFromList(){
+
+    document.getElementById("listPage").classList.remove("active");
+    document.getElementById("homePage").classList.add("active");
+
+    updateCount();
+}
+
+
+
+// ==========================
+// QR読取成功
+// ==========================
 function onScanSuccess(decodedText){
 
-    const msg = document.getElementById("message");
-    const last = document.getElementById("lastCode");
-
+    // 重複チェック
     if(scans.some(s => s.code === decodedText)){
 
-        msg.textContent = "⚠ 重複データ";
-        msg.className = "duplicate";
-
-        last.textContent = decodedText;
-
         navigator.vibrate?.([100,100,100]);
+
+        showScanMessage(
+            "⚠ 重複しています",
+            true
+        );
 
         return;
     }
 
-    const record = {
-        datetime:new Date().toLocaleString("ja-JP"),
-        code:decodedText,
-        rank:"",
-        memo:""
-    };
+    // データ追加
+    scans.unshift({
 
-    scans.unshift(record);
+        datetime:
+            new Date().toLocaleString("ja-JP"),
+
+        code:
+            decodedText
+
+    });
 
     saveData();
 
@@ -45,154 +124,122 @@ function onScanSuccess(decodedText){
 
     navigator.vibrate?.(200);
 
-    msg.textContent = "✓ 登録完了";
-    msg.className = "success";
+    showScanMessage("✓ 読み取りました");
 
-    last.textContent = decodedText;
+    updateCount();
 
-    renderTable();
 }
 
-function saveData(){
-    localStorage.setItem("scans", JSON.stringify(scans));
+
+
+// ==========================
+// メッセージ表示
+// ==========================
+function showScanMessage(text, duplicate = false){
+
+    const msg =
+        document.getElementById("scanMessage");
+
+    msg.textContent = text;
+
+    if(duplicate){
+
+        msg.classList.add("duplicate");
+
+    }else{
+
+        msg.classList.remove("duplicate");
+
+    }
+
+    msg.style.display = "block";
+
+    setTimeout(()=>{
+
+        msg.style.display = "none";
+
+    },1000);
+
 }
 
+
+
+// ==========================
+// テーブル表示
+// ==========================
 function renderTable(){
 
-    const tbody = document.getElementById("history");
-
-    const keyword =
-        document.getElementById("search").value;
-
-    const onlyA =
-        document.getElementById("onlyA").checked;
+    const tbody =
+        document.getElementById("history");
 
     tbody.innerHTML = "";
 
-    let filtered = scans.filter(s=>{
-
-        let ok = true;
-
-        if(keyword){
-            ok = s.code.includes(keyword);
-        }
-
-        if(onlyA){
-            ok = ok && s.rank==="A";
-        }
-
-        return ok;
-    });
-
-    filtered.forEach((scan,index)=>{
-
-        let cls="";
-
-        if(scan.rank==="A") cls="rankA";
-        if(scan.rank==="B") cls="rankB";
-        if(scan.rank==="C") cls="rankC";
+    scans.forEach(scan=>{
 
         tbody.innerHTML += `
-        <tr class="${cls}">
-            <td>${scan.datetime}</td>
-            <td>${scan.code}</td>
-
-            <td>
-            <select onchange="changeRank('${scan.code}',this.value)">
-                <option value="" ${scan.rank==""?"selected":""}></option>
-                <option value="A" ${scan.rank=="A"?"selected":""}>A</option>
-                <option value="B" ${scan.rank=="B"?"selected":""}>B</option>
-                <option value="C" ${scan.rank=="C"?"selected":""}>C</option>
-            </select>
-            </td>
-
-            <td>
-            <input class="memo"
-                   value="${scan.memo}"
-                   onchange="changeMemo('${scan.code}',this.value)">
-            </td>
-        </tr>
+            <tr>
+                <td>${scan.datetime}</td>
+                <td>${scan.code}</td>
+            </tr>
         `;
+
     });
+
+}
+
+
+
+// ==========================
+// 件数更新
+// ==========================
+function updateCount(){
 
     document.getElementById("count").textContent =
         scans.length;
+
 }
 
-function changeRank(code,value){
 
-    const target = scans.find(s=>s.code===code);
 
-    target.rank = value;
+// ==========================
+// 保存
+// ==========================
+function saveData(){
 
-    saveData();
-
-    renderTable();
-}
-
-function changeMemo(code,value){
-
-    const target = scans.find(s=>s.code===code);
-
-    target.memo = value;
-
-    saveData();
-}
-
-function exportCSV(){
-
-    let csv =
-        "日時,来場者ID,ランク,メモ\n";
-
-    scans.forEach(scan=>{
-
-        csv +=
-        `"${scan.datetime}","${scan.code}","${scan.rank}","${scan.memo}"\n`;
-
-    });
-
-    const blob = new Blob(
-        ["\uFEFF"+csv],
-        {type:"text/csv"}
+    localStorage.setItem(
+        "scans",
+        JSON.stringify(scans)
     );
 
-    const a = document.createElement("a");
-
-    a.href = URL.createObjectURL(blob);
-
-    a.download = "展示会来場者一覧.csv";
-
-    a.click();
 }
 
-function clearData(){
 
-    if(confirm("全件削除しますか？")){
 
-        scans = [];
-
-        localStorage.removeItem("scans");
-
-        renderTable();
-
-        document.getElementById("message").textContent="";
-        document.getElementById("lastCode").textContent="";
-    }
-}
-
+// ==========================
 // Excel出力
+// ==========================
 function exportExcel(){
 
-    const data = scans.map(s => ({
+    if(scans.length === 0){
+
+        alert("データがありません");
+
+        return;
+    }
+
+    const excelData = scans.map(s => ({
+
         "日時": s.datetime,
-        "来場者ID": s.code,
-        "ランク": s.rank,
-        "メモ": s.memo
+        "来場者ID": s.code
+
     }));
 
-    const wb = XLSX.utils.book_new();
 
-    const ws = XLSX.utils.json_to_sheet(data);
+    const ws =
+        XLSX.utils.json_to_sheet(excelData);
+
+    const wb =
+        XLSX.utils.book_new();
 
     XLSX.utils.book_append_sheet(
         wb,
@@ -204,31 +251,45 @@ function exportExcel(){
         wb,
         "展示会来場者一覧.xlsx"
     );
+
 }
 
 
+
+// ==========================
 // バックアップ
+// ==========================
 function backupData(){
 
     const blob = new Blob(
         [JSON.stringify(scans)],
-        {type:"application/json"}
+        {
+            type:"application/json"
+        }
     );
 
-    const a = document.createElement("a");
+    const a =
+        document.createElement("a");
 
-    a.href = URL.createObjectURL(blob);
+    a.href =
+        URL.createObjectURL(blob);
 
-    a.download = "backup.json";
+    a.download =
+        "visitor_backup.json";
 
     a.click();
+
 }
 
 
+
+// ==========================
 // 復元
+// ==========================
 function restoreBackup(event){
 
-    const file = event.target.files[0];
+    const file =
+        event.target.files[0];
 
     if(!file) return;
 
@@ -236,15 +297,25 @@ function restoreBackup(event){
 
     reader.onload = function(e){
 
-        scans = JSON.parse(e.target.result);
+        try{
 
-        saveData();
+            scans =
+                JSON.parse(e.target.result);
 
-        renderTable();
+            saveData();
 
-        alert("復元しました");
+            updateCount();
+
+            alert("復元しました");
+
+        }catch{
+
+            alert("復元に失敗しました");
+
+        }
 
     };
 
     reader.readAsText(file);
+
 }

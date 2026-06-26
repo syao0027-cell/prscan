@@ -179,3 +179,72 @@ function clearData(){
         document.getElementById("lastCode").textContent="";
     }
 }
+
+// Excel出力
+function exportExcel(){
+
+    const data = scans.map(s => ({
+        "日時": s.datetime,
+        "来場者ID": s.code,
+        "ランク": s.rank,
+        "メモ": s.memo
+    }));
+
+    const wb = XLSX.utils.book_new();
+
+    const ws = XLSX.utils.json_to_sheet(data);
+
+    XLSX.utils.book_append_sheet(
+        wb,
+        ws,
+        "来場者一覧"
+    );
+
+    XLSX.writeFile(
+        wb,
+        "展示会来場者一覧.xlsx"
+    );
+}
+
+
+// バックアップ
+function backupData(){
+
+    const blob = new Blob(
+        [JSON.stringify(scans)],
+        {type:"application/json"}
+    );
+
+    const a = document.createElement("a");
+
+    a.href = URL.createObjectURL(blob);
+
+    a.download = "backup.json";
+
+    a.click();
+}
+
+
+// 復元
+function restoreBackup(event){
+
+    const file = event.target.files[0];
+
+    if(!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function(e){
+
+        scans = JSON.parse(e.target.result);
+
+        saveData();
+
+        renderTable();
+
+        alert("復元しました");
+
+    };
+
+    reader.readAsText(file);
+}

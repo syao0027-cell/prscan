@@ -2,117 +2,94 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>展示会 来場者管理</title>
 
-<!-- PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4CAF50">
 
-<!-- QR読取 -->
 <script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
 
-*{
-    box-sizing:border-box;
-}
-
 body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-family:sans-serif;
+    background:#f5f5f5;
     margin:0;
     padding:15px;
     text-align:center;
-    background:#f5f5f5;
+}
+
+.page{
+    display:none;
+}
+
+.page.active{
+    display:block;
 }
 
 h1{
     color:#333;
-    margin-top:5px;
-    margin-bottom:15px;
+}
+
+button{
+    width:90%;
+    max-width:320px;
+    padding:18px;
+    margin:8px auto;
+    border:none;
+    border-radius:12px;
+    background:#4CAF50;
+    color:white;
+    font-size:18px;
+    display:block;
+}
+
+.small-btn{
+    width:auto;
+    padding:10px 20px;
+    font-size:16px;
 }
 
 #reader{
     width:100%;
     max-width:350px;
-    margin:0 auto 15px auto;
-    background:#fff;
-    padding:10px;
-    border-radius:12px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+    margin:auto;
 }
 
-#message{
-    font-size:28px;
+#scanMessage{
+
+    position:fixed;
+    bottom:30px;
+    left:50%;
+    transform:translateX(-50%);
+
+    background:#4CAF50;
+    color:white;
+
+    padding:20px 40px;
+
+    border-radius:15px;
+
+    font-size:30px;
     font-weight:bold;
-    min-height:45px;
-    margin:10px 0;
-}
 
-.success{
-    color:#2e7d32;
+    display:none;
+
+    z-index:9999;
 }
 
 .duplicate{
-    color:#d32f2f;
-}
-
-#lastCode{
-    font-size:20px;
-    margin-bottom:10px;
-    word-break:break-all;
-}
-
-#countArea{
-    font-size:20px;
-    margin:10px 0;
-}
-
-.search-area{
-    margin:15px 0;
-}
-
-.search-area input{
-    width:100%;
-    max-width:350px;
-    padding:10px;
-    border-radius:8px;
-    border:1px solid #ccc;
-}
-
-.filter{
-    margin:15px 0;
-}
-
-.buttons{
-    display:flex;
-    flex-wrap:wrap;
-    justify-content:center;
-    gap:8px;
-    margin:15px 0;
-}
-
-button{
-    padding:10px 15px;
-    border:none;
-    border-radius:10px;
-    font-size:15px;
-    cursor:pointer;
-    background:#4CAF50;
-    color:#fff;
-}
-
-button:hover{
-    opacity:0.9;
+    background:#d32f2f !important;
 }
 
 table{
     width:100%;
     border-collapse:collapse;
-    background:#fff;
+    background:white;
     margin-top:20px;
-    font-size:14px;
 }
 
 th,td{
@@ -122,95 +99,30 @@ th,td{
 
 th{
     background:#4CAF50;
-    color:#fff;
-    position:sticky;
-    top:0;
-}
-
-.rankA{
-    background:#fff8e1;
-}
-
-.rankB{
-    background:#e3f2fd;
-}
-
-.rankC{
-    background:#eeeeee;
-}
-
-.memo{
-    width:140px;
-}
-
-select,
-.memo{
-    padding:5px;
-}
-
-@media(max-width:600px){
-
-    table{
-        font-size:12px;
-    }
-
-    .memo{
-        width:100px;
-    }
-
-    button{
-        width:48%;
-    }
-
+    color:white;
 }
 
 </style>
-
 </head>
 
 <body>
 
-<h1>展示会 来場者管理</h1>
+<!-- ホーム画面 -->
+<div id="homePage" class="page active">
 
-<!-- QRスキャンエリア -->
-<div id="reader"></div>
+    <h1>展示会 来場者管理</h1>
 
-<!-- メッセージ -->
-<div id="message"></div>
+    <h2>
+        読取件数：
+        <span id="count">0</span>件
+    </h2>
 
-<!-- 最終読取ID -->
-<div id="lastCode"></div>
+    <button onclick="openScanner()">
+        QRコードを読む
+    </button>
 
-<!-- 件数 -->
-<div id="countArea">
-    読取件数：<span id="count">0</span>件
-</div>
-
-<!-- 検索 -->
-<div class="search-area">
-    <input
-        type="text"
-        id="search"
-        placeholder="来場者IDを検索"
-        onkeyup="renderTable()">
-</div>
-
-<!-- フィルタ -->
-<div class="filter">
-    <label>
-        <input
-            type="checkbox"
-            id="onlyA"
-            onchange="renderTable()">
-        Aランクのみ表示
-    </label>
-</div>
-
-<!-- ボタン -->
-<div class="buttons">
-
-    <button onclick="exportCSV()">
-        CSV出力
+    <button onclick="showList()">
+        一覧を見る
     </button>
 
     <button onclick="exportExcel()">
@@ -221,56 +133,55 @@ select,
         バックアップ
     </button>
 
-    <button onclick="document.getElementById('restoreFile').click()">
-        復元
+</div>
+
+
+<!-- スキャン画面 -->
+<div id="scanPage" class="page">
+
+    <button class="small-btn"
+            onclick="goHome()">
+        ← ホームへ戻る
     </button>
 
-    <button onclick="clearData()">
-        全削除
-    </button>
+    <h2>QRコードを読み取ってください</h2>
+
+    <div id="reader"></div>
 
 </div>
 
-<!-- 復元用 -->
-<input
-    type="file"
-    id="restoreFile"
-    accept=".json"
-    onchange="restoreBackup(event)"
-    style="display:none;">
 
-<!-- 一覧 -->
-<table>
+<!-- 一覧画面 -->
+<div id="listPage" class="page">
 
-    <thead>
+    <button class="small-btn"
+            onclick="backHomeFromList()">
+        ← ホームへ戻る
+    </button>
+
+    <h2>来場者一覧</h2>
+
+    <table>
+
+        <thead>
         <tr>
             <th>日時</th>
             <th>ID</th>
-            <th>ランク</th>
-            <th>メモ</th>
         </tr>
-    </thead>
+        </thead>
 
-    <tbody id="history"></tbody>
+        <tbody id="history"></tbody>
 
-</table>
+    </table>
 
-<!-- 読取音 -->
+</div>
+
+<div id="scanMessage"></div>
+
 <audio id="beep">
     <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">
 </audio>
 
-<!-- Excelライブラリ -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-
-<!-- Service Worker登録 -->
-<script>
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js');
-}
-</script>
-
-<!-- メインJS -->
 <script src="app.js"></script>
 
 </body>

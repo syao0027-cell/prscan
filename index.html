@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>展示会 来場者管理</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+body{
+    font-family: sans-serif;
+    padding:20px;
+    text-align:center;
+}
+
+#reader{
+    width:300px;
+    margin:auto;
+}
+
+button{
+    padding:10px 20px;
+    margin:5px;
+    font-size:16px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+
+th,td{
+    border:1px solid #ccc;
+    padding:8px;
+}
+
+th{
+    background:#f0f0f0;
+}
+</style>
+</head>
+<body>
+
+<h1>展示会 来場者管理</h1>
+
+<div id="reader"></div>
+
+<p>読み取り件数：<span id="count">0</span>件</p>
+
+<button onclick="exportCSV()">CSV出力</button>
+<button onclick="clearData()">全削除</button>
+
+<table>
+<thead>
+<tr>
+<th>日時</th>
+<th>来場者ID</th>
+</tr>
+</thead>
+<tbody id="history"></tbody>
+</table>
+
+<script src="app.js"></script>
+
+</body>
+</html>

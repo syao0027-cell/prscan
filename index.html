@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+<title>展示会 来場者管理</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4CAF50">
+
+<!-- QRコード読取 -->
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<!-- Excel出力 -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    padding:15px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:#f5f5f5;
+    color:#333;
+}
+
+.page{
+    display:none;
+}
+
+.page.active{
+    display:block;
+}
+
+.header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
+
+h1,h2{
+    margin:0;
+}
+
+.gear-btn{
+    width:50px;
+    height:50px;
+    border:none;
+    border-radius:50%;
+    font-size:24px;
+    background:#4CAF50;
+    color:white;
+}
+
+button{
+    width:100%;
+    max-width:350px;
+    padding:16px;
+    margin:8px auto;
+    border:none;
+    border-radius:12px;
+    background:#4CAF50;
+    color:white;
+    font-size:18px;
+    display:block;
+}
+
+button.danger{
+    background:#d32f2f;
+}
+
+.small-btn{
+    width:auto;
+    padding:10px 20px;
+    font-size:16px;
+}
+
+#reader{
+    width:100%;
+    max-width:350px;
+    margin:20px auto;
+    background:white;
+    padding:10px;
+    border-radius:12px;
+}
+
+#scanMessage{
+    position:fixed;
+    bottom:30px;
+    left:50%;
+    transform:translateX(-50%);
+    background:#4CAF50;
+    color:white;
+    padding:18px 30px;
+    border-radius:15px;
+    font-size:28px;
+    font-weight:bold;
+    display:none;
+    z-index:9999;
+}
+
+#scanMessage.duplicate{
+    background:#d32f2f;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    margin-top:20px;
+}
+
+th,td{
+    border:1px solid #ddd;
+    padding:8px;
+    text-align:center;
+}
+
+th{
+    background:#4CAF50;
+    color:white;
+}
+
+.count-box{
+    font-size:24px;
+    text-align:center;
+    margin:30px 0;
+}
+
+@media (max-width:600px){
+
+    button{
+        font-size:16px;
+    }
+
+    #scanMessage{
+        width:90%;
+        font-size:24px;
+    }
+
+    table{
+        font-size:13px;
+    }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- =========================
+ホーム画面
+========================= -->
+<div id="homePage" class="page active">
+
+    <div class="header">
+
+        <h1>展示会 来場者管理</h1>
+
+        <button class="gear-btn"
+                onclick="openSettings()">
+            ⚙️
+        </button>
+
+    </div>
+
+    <div class="count-box">
+        読取件数：<span id="count">0</span>件
+    </div>
+
+    <button onclick="openScanner()">
+        QRコードを読む
+    </button>
+
+    <button onclick="showList()">
+        一覧を見る
+    </button>
+
+</div>
+
+
+<!-- =========================
+スキャン画面
+========================= -->
+<div id="scanPage" class="page">
+
+    <button class="small-btn"
+            onclick="goHome()">
+        ← ホームへ戻る
+    </button>
+
+    <h2 style="text-align:center;margin-top:15px;">
+        QRコードを読み取ってください
+    </h2>
+
+    <div id="reader"></div>
+
+</div>
+
+
+<!-- =========================
+一覧画面
+========================= -->
+<div id="listPage" class="page">
+
+    <button class="small-btn"
+            onclick="backHomeFromList()">
+        ← ホームへ戻る
+    </button>
+
+    <h2 style="text-align:center;margin-top:15px;">
+        来場者一覧
+    </h2>
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>日時</th>
+                <th>来場者ID</th>
+            </tr>
+        </thead>
+
+        <tbody id="history"></tbody>
+
+    </table>
+
+</div>
+
+
+<!-- =========================
+設定画面
+========================= -->
+<div id="settingsPage" class="page">
+
+    <button class="small-btn"
+            onclick="closeSettings()">
+        ← ホームへ戻る
+    </button>
+
+    <h2 style="text-align:center;margin-top:20px;">
+        設定
+    </h2>
+
+    <button onclick="confirmExcel()">
+        Excel出力
+    </button>
+
+    <button onclick="confirmBackup()">
+        バックアップ
+    </button>
+
+    <button onclick="confirmRestore()">
+        復元
+    </button>
+
+    <button class="danger"
+            onclick="confirmDelete()">
+        全データ削除
+    </button>
+
+</div>
+
+
+<!-- =========================
+復元用
+========================= -->
+<input
+    type="file"
+    id="restoreFile"
+    accept=".json"
+    onchange="restoreBackup(event)"
+    style="display:none;">
+
+
+<!-- =========================
+読取メッセージ
+========================= -->
+<div id="scanMessage"></div>
+
+
+<!-- =========================
+読取音
+========================= -->
+<audio id="beep">
+    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">
+</audio>
+
+
+<!-- =========================
+Service Worker登録
+========================= -->
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js');
+}
+</script>
+
+<!-- メインJS -->
+<script src="app.js"></script>
+
+</body>
+</html>

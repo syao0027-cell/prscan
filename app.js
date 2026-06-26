@@ -15,52 +15,140 @@ qr.start(
 
 function onScanSuccess(decodedText){
 
-    // 重複防止
+    const msg = document.getElementById("message");
+    const last = document.getElementById("lastCode");
+
     if(scans.some(s => s.code === decodedText)){
+
+        msg.textContent = "⚠ 重複データ";
+        msg.className = "duplicate";
+
+        last.textContent = decodedText;
+
+        navigator.vibrate?.([100,100,100]);
+
         return;
     }
 
-    const now = new Date();
-
     const record = {
-        datetime: now.toLocaleString('ja-JP'),
-        code: decodedText
+        datetime:new Date().toLocaleString("ja-JP"),
+        code:decodedText,
+        rank:"",
+        memo:""
     };
 
     scans.unshift(record);
 
-    localStorage.setItem("scans", JSON.stringify(scans));
+    saveData();
 
-    renderTable();
+    document.getElementById("beep").play();
 
     navigator.vibrate?.(200);
+
+    msg.textContent = "✓ 登録完了";
+    msg.className = "success";
+
+    last.textContent = decodedText;
+
+    renderTable();
+}
+
+function saveData(){
+    localStorage.setItem("scans", JSON.stringify(scans));
 }
 
 function renderTable(){
 
     const tbody = document.getElementById("history");
 
+    const keyword =
+        document.getElementById("search").value;
+
+    const onlyA =
+        document.getElementById("onlyA").checked;
+
     tbody.innerHTML = "";
 
-    scans.forEach(scan => {
+    let filtered = scans.filter(s=>{
+
+        let ok = true;
+
+        if(keyword){
+            ok = s.code.includes(keyword);
+        }
+
+        if(onlyA){
+            ok = ok && s.rank==="A";
+        }
+
+        return ok;
+    });
+
+    filtered.forEach((scan,index)=>{
+
+        let cls="";
+
+        if(scan.rank==="A") cls="rankA";
+        if(scan.rank==="B") cls="rankB";
+        if(scan.rank==="C") cls="rankC";
 
         tbody.innerHTML += `
-        <tr>
+        <tr class="${cls}">
             <td>${scan.datetime}</td>
             <td>${scan.code}</td>
+
+            <td>
+            <select onchange="changeRank('${scan.code}',this.value)">
+                <option value="" ${scan.rank==""?"selected":""}></option>
+                <option value="A" ${scan.rank=="A"?"selected":""}>A</option>
+                <option value="B" ${scan.rank=="B"?"selected":""}>B</option>
+                <option value="C" ${scan.rank=="C"?"selected":""}>C</option>
+            </select>
+            </td>
+
+            <td>
+            <input class="memo"
+                   value="${scan.memo}"
+                   onchange="changeMemo('${scan.code}',this.value)">
+            </td>
         </tr>
         `;
     });
 
-    document.getElementById("count").textContent = scans.length;
+    document.getElementById("count").textContent =
+        scans.length;
+}
+
+function changeRank(code,value){
+
+    const target = scans.find(s=>s.code===code);
+
+    target.rank = value;
+
+    saveData();
+
+    renderTable();
+}
+
+function changeMemo(code,value){
+
+    const target = scans.find(s=>s.code===code);
+
+    target.memo = value;
+
+    saveData();
 }
 
 function exportCSV(){
 
-    let csv = "日時,来場者ID\n";
+    let csv =
+        "日時,来場者ID,ランク,メモ\n";
 
     scans.forEach(scan=>{
-        csv += `${scan.datetime},${scan.code}\n`;
+
+        csv +=
+        `"${scan.datetime}","${scan.code}","${scan.rank}","${scan.memo}"\n`;
+
     });
 
     const blob = new Blob(
@@ -69,19 +157,25 @@ function exportCSV(){
     );
 
     const a = document.createElement("a");
+
     a.href = URL.createObjectURL(blob);
-    a.download = "来場者一覧.csv";
+
+    a.download = "展示会来場者一覧.csv";
+
     a.click();
 }
 
 function clearData(){
 
-    if(confirm("全データを削除しますか？")){
+    if(confirm("全件削除しますか？")){
 
         scans = [];
 
         localStorage.removeItem("scans");
 
         renderTable();
+
+        document.getElementById("message").textContent="";
+        document.getElementById("lastCode").textContent="";
     }
 }

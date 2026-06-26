@@ -9,37 +9,98 @@
 
 <style>
 body{
-    font-family: sans-serif;
-    padding:20px;
+    font-family:sans-serif;
+    padding:15px;
     text-align:center;
+    background:#f5f5f5;
+}
+
+h1{
+    color:#333;
 }
 
 #reader{
-    width:300px;
+    width:320px;
     margin:auto;
+}
+
+#message{
+    font-size:28px;
+    font-weight:bold;
+    min-height:50px;
+    margin:15px;
+}
+
+.success{
+    color:green;
+}
+
+.duplicate{
+    color:red;
+}
+
+#lastCode{
+    font-size:22px;
+    margin-bottom:10px;
+    word-break: break-all;
 }
 
 button{
     padding:10px 20px;
     margin:5px;
     font-size:16px;
+    border:none;
+    border-radius:8px;
+}
+
+.search-area{
+    margin:15px;
+}
+
+input[type=text]{
+    padding:8px;
+    width:90%;
+    max-width:300px;
 }
 
 table{
     width:100%;
     border-collapse:collapse;
     margin-top:20px;
+    background:white;
 }
 
 th,td{
-    border:1px solid #ccc;
+    border:1px solid #ddd;
     padding:8px;
 }
 
 th{
-    background:#f0f0f0;
+    background:#4CAF50;
+    color:white;
+}
+
+.rankA{
+    background:#ffe082;
+}
+
+.rankB{
+    background:#bbdefb;
+}
+
+.rankC{
+    background:#eeeeee;
+}
+
+select{
+    padding:5px;
+}
+
+.memo{
+    width:120px;
 }
 </style>
+
 </head>
 <body>
 
@@ -47,7 +108,23 @@ th{
 
 <div id="reader"></div>
 
-<p>読み取り件数：<span id="count">0</span>件</p>
+<div id="message"></div>
+
+<div id="lastCode"></div>
+
+<h3>読取件数：<span id="count">0</span>件</h3>
+
+<div class="search-area">
+<input type="text" id="search" placeholder="来場者ID検索">
+<button onclick="renderTable()">検索</button>
+</div>
+
+<label>
+<input type="checkbox" id="onlyA" onchange="renderTable()">
+Aランクのみ表示
+</label>
+
+<br><br>
 
 <button onclick="exportCSV()">CSV出力</button>
 <button onclick="clearData()">全削除</button>
@@ -56,11 +133,19 @@ th{
 <thead>
 <tr>
 <th>日時</th>
-<th>来場者ID</th>
+<th>ID</th>
+<th>ランク</th>
+<th>メモ</th>
 </tr>
 </thead>
+
 <tbody id="history"></tbody>
+
 </table>
+
+<audio id="beep">
+<source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">
+</audio>
 
 <script src="app.js"></script>
 

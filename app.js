@@ -1,17 +1,18 @@
-// ==========================
-// データ読込
-// ==========================
+```javascript
+// ================================
+// データ読み込み
+// ================================
 let scans = JSON.parse(localStorage.getItem("scans")) || [];
 
 let qr = null;
 
-// 初期表示
+// 初期件数表示
 updateCount();
 
 
-// ==========================
-// スキャナー起動
-// ==========================
+// ================================
+// ホーム → スキャナー
+// ================================
 function openScanner(){
 
     document.getElementById("homePage").classList.remove("active");
@@ -28,16 +29,25 @@ function openScanner(){
             qrbox: 250
         },
         onScanSuccess
-    ).catch(err=>{
-        alert("カメラを起動できませんでした。\nカメラの許可を確認してください。");
+    )
+    .catch(err => {
+
+        alert(
+            "カメラを起動できませんでした。\n" +
+            "カメラの使用を許可してください。"
+        );
+
         console.error(err);
+
+        goHome();
     });
+
 }
 
 
-// ==========================
-// ホームへ戻る
-// ==========================
+// ================================
+// スキャナー → ホーム
+// ================================
 function goHome(){
 
     document.getElementById("scanPage").classList.remove("active");
@@ -46,52 +56,76 @@ function goHome(){
     if(qr){
 
         qr.stop()
-        .then(()=>{
+        .then(() => {
 
             qr.clear();
 
             qr = null;
 
         })
-        .catch(err=>{
-            console.log(err);
-        });
+        .catch(err => console.log(err));
 
     }
 
     updateCount();
+
 }
 
 
 
-// ==========================
-// 一覧表示
-// ==========================
+// ================================
+// ホーム → 一覧
+// ================================
 function showList(){
 
     document.getElementById("homePage").classList.remove("active");
     document.getElementById("listPage").classList.add("active");
 
     renderTable();
+
 }
 
 
-// ==========================
-// 一覧→ホーム
-// ==========================
+
+// ================================
+// 一覧 → ホーム
+// ================================
 function backHomeFromList(){
 
     document.getElementById("listPage").classList.remove("active");
     document.getElementById("homePage").classList.add("active");
 
-    updateCount();
 }
 
 
 
-// ==========================
+// ================================
+// ホーム → 設定
+// ================================
+function openSettings(){
+
+    document.getElementById("homePage").classList.remove("active");
+    document.getElementById("settingsPage").classList.add("active");
+
+}
+
+
+
+// ================================
+// 設定 → ホーム
+// ================================
+function closeSettings(){
+
+    document.getElementById("settingsPage").classList.remove("active");
+    document.getElementById("homePage").classList.add("active");
+
+}
+
+
+
+// ================================
 // QR読取成功
-// ==========================
+// ================================
 function onScanSuccess(decodedText){
 
     // 重複チェック
@@ -107,24 +141,31 @@ function onScanSuccess(decodedText){
         return;
     }
 
-    // データ追加
+    // 新規登録
     scans.unshift({
 
-        datetime:
-            new Date().toLocaleString("ja-JP"),
+        datetime : new Date().toLocaleString("ja-JP"),
 
-        code:
-            decodedText
+        code : decodedText
 
     });
 
     saveData();
 
-    document.getElementById("beep").play();
+    // 音
+    const beep = document.getElementById("beep");
 
+    if(beep){
+        beep.play().catch(()=>{});
+    }
+
+    // バイブ
     navigator.vibrate?.(200);
 
-    showScanMessage("✓ 読み取りました");
+    // メッセージ
+    showScanMessage(
+        "✓ 読み取りました"
+    );
 
     updateCount();
 
@@ -132,10 +173,10 @@ function onScanSuccess(decodedText){
 
 
 
-// ==========================
+// ================================
 // メッセージ表示
-// ==========================
-function showScanMessage(text, duplicate = false){
+// ================================
+function showScanMessage(text, duplicate=false){
 
     const msg =
         document.getElementById("scanMessage");
@@ -154,7 +195,7 @@ function showScanMessage(text, duplicate = false){
 
     msg.style.display = "block";
 
-    setTimeout(()=>{
+    setTimeout(() => {
 
         msg.style.display = "none";
 
@@ -164,9 +205,9 @@ function showScanMessage(text, duplicate = false){
 
 
 
-// ==========================
-// テーブル表示
-// ==========================
+// ================================
+// 一覧表示
+// ================================
 function renderTable(){
 
     const tbody =
@@ -174,7 +215,7 @@ function renderTable(){
 
     tbody.innerHTML = "";
 
-    scans.forEach(scan=>{
+    scans.forEach(scan => {
 
         tbody.innerHTML += `
             <tr>
@@ -189,9 +230,9 @@ function renderTable(){
 
 
 
-// ==========================
+// ================================
 // 件数更新
-// ==========================
+// ================================
 function updateCount(){
 
     document.getElementById("count").textContent =
@@ -201,9 +242,9 @@ function updateCount(){
 
 
 
-// ==========================
+// ================================
 // 保存
-// ==========================
+// ================================
 function saveData(){
 
     localStorage.setItem(
@@ -215,28 +256,27 @@ function saveData(){
 
 
 
-// ==========================
+// ================================
 // Excel出力
-// ==========================
+// ================================
 function exportExcel(){
 
     if(scans.length === 0){
 
-        alert("データがありません");
+        alert("出力するデータがありません");
 
         return;
     }
 
-    const excelData = scans.map(s => ({
+    const data = scans.map(s => ({
 
         "日時": s.datetime,
         "来場者ID": s.code
 
     }));
 
-
     const ws =
-        XLSX.utils.json_to_sheet(excelData);
+        XLSX.utils.json_to_sheet(data);
 
     const wb =
         XLSX.utils.book_new();
@@ -256,15 +296,15 @@ function exportExcel(){
 
 
 
-// ==========================
+// ================================
 // バックアップ
-// ==========================
+// ================================
 function backupData(){
 
     const blob = new Blob(
         [JSON.stringify(scans)],
         {
-            type:"application/json"
+            type : "application/json"
         }
     );
 
@@ -283,9 +323,9 @@ function backupData(){
 
 
 
-// ==========================
+// ================================
 // 復元
-// ==========================
+// ================================
 function restoreBackup(event){
 
     const file =
@@ -308,7 +348,8 @@ function restoreBackup(event){
 
             alert("復元しました");
 
-        }catch{
+        }
+        catch{
 
             alert("復元に失敗しました");
 
@@ -319,3 +360,73 @@ function restoreBackup(event){
     reader.readAsText(file);
 
 }
+
+
+
+// ================================
+// 確認ポップ
+// ================================
+function confirmExcel(){
+
+    if(confirm(
+        "Excelファイルを出力しますか？"
+    )){
+
+        exportExcel();
+
+    }
+
+}
+
+
+
+function confirmBackup(){
+
+    if(confirm(
+        "バックアップを作成しますか？"
+    )){
+
+        backupData();
+
+    }
+
+}
+
+
+
+function confirmRestore(){
+
+    if(confirm(
+        "バックアップから復元しますか？\n現在のデータは上書きされます。"
+    )){
+
+        document
+            .getElementById("restoreFile")
+            .click();
+
+    }
+
+}
+
+
+
+function confirmDelete(){
+
+    if(confirm(
+        "全データを削除しますか？\nこの操作は元に戻せません。"
+    )){
+
+        scans = [];
+
+        saveData();
+
+        updateCount();
+
+        renderTable();
+
+        alert("全データを削除しました");
+
+    }
+
+}
+```

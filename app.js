@@ -127,33 +127,28 @@ function closeSettings(){
 // ================================
 function onScanSuccess(decodedText){
 
-    // 重複チェック
+    // 重複チェック（読み取り失敗・エラー扱いとする場合）
     if(scans.some(s => s.code === decodedText)){
 
         navigator.vibrate?.([100,100,100]);
 
-        showScanMessage(
-            "⚠ 重複しています",
-            true
-        );
+        alert("読み取りに失敗しました\n（既に登録されているコードです）");
+
+        goHome();
 
         return;
     }
 
     // 新規登録
     scans.unshift({
-
         datetime : new Date().toLocaleString("ja-JP"),
-
         code : decodedText
-
     });
 
     saveData();
 
     // 音
     const beep = document.getElementById("beep");
-
     if(beep){
         beep.play().catch(()=>{});
     }
@@ -161,12 +156,11 @@ function onScanSuccess(decodedText){
     // バイブ
     navigator.vibrate?.(200);
 
-    // メッセージ
-    showScanMessage(
-        "✓ 読み取りました"
-    );
+    // 成功ポップアップ表示
+    alert("正常に読み取りました");
 
-    updateCount();
+    // ホーム画面へ戻る
+    goHome();
 
 }
 
@@ -426,5 +420,49 @@ function confirmDelete(){
         alert("全データを削除しました");
 
     }
+
+}
+
+
+
+// ================================
+// QR読取成功
+// ================================
+function onScanSuccess(decodedText){
+
+    // 重複チェック（読み取り失敗・エラー扱いとする場合）
+    if(scans.some(s => s.code === decodedText)){
+
+        navigator.vibrate?.([100,100,100]);
+
+        alert("読み取りに失敗しました\n（既に登録されているコードです）");
+
+        goHome();
+
+        return;
+    }
+
+    // 新規登録
+    scans.unshift({
+        datetime : new Date().toLocaleString("ja-JP"),
+        code : decodedText
+    });
+
+    saveData();
+
+    // 音
+    const beep = document.getElementById("beep");
+    if(beep){
+        beep.play().catch(()=>{});
+    }
+
+    // バイブ
+    navigator.vibrate?.(200);
+
+    // 成功ポップアップ表示
+    alert("正常に読み取りました");
+
+    // ホーム画面へ戻る
+    goHome();
 
 }

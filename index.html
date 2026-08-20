@@ -49,14 +49,23 @@ h1,h2{
     margin:0;
 }
 
+/* 歯車ボタン（ズレ防止・中央揃え・スマホでの潰れ防止） */
 .gear-btn{
     width:50px;
     height:50px;
+    min-width:50px;
     border:none;
     border-radius:50%;
     font-size:24px;
     background:#4CAF50;
     color:white;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0;
+    margin:0;
+    line-height:1;
 }
 
 button{
@@ -70,6 +79,20 @@ button{
     color:white;
     font-size:18px;
     display:block;
+}
+
+/* ホーム画面のボタン（QRコードを読む／一覧を見る）：大型化 */
+#homePage button:not(.gear-btn){
+    padding:22px 20px;
+    margin:16px auto;
+    font-size:20px;
+    font-weight:bold;
+    box-shadow:0 4px 10px rgba(0, 0, 0, 0.15);
+    border-radius:16px;
+}
+
+#homePage button:not(.gear-btn):active{
+    transform:scale(0.98);
 }
 
 button.danger{
@@ -138,6 +161,11 @@ th{
 
     button{
         font-size:16px;
+    }
+
+    /* メディアクエリ内でもホーム画面のメインボタンは大きさを維持 */
+    #homePage button:not(.gear-btn){
+        font-size:20px;
     }
 
     #scanMessage{
